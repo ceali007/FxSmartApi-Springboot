@@ -1,0 +1,6 @@
+# src/main/resources/application.yml
+server:
+  port: 8080
+
+twelvedata:
+  apiKey: 1cf34041172848ae82f9ef6ba2b3911d
