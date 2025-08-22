@@ -7,6 +7,21 @@ import com.fx.FxSmartApi.model.StrategyConfig;
 import java.util.List;
 
 public interface Strategy {
-    String name();
-    Signal generate(List<Candle> candles, StrategyConfig cfg);
+
+    /** Strateji adı — override etmezsen sınıf adını döner */
+    default String name() {
+        return this.getClass().getSimpleName();
+    }
+
+    /**
+     * Çoklu TF değerlendirme.
+     * Gerekli olmayan TF'ler için boş liste veya null gelebilir; strateji kendini korumalı.
+     */
+    List<Signal> evaluate(String symbol,
+                          List<Candle> m1,
+                          List<Candle> m5,
+                          List<Candle> m15,
+                          List<Candle> h4,
+                          List<Candle> d1,
+                          StrategyConfig cfg);
 }

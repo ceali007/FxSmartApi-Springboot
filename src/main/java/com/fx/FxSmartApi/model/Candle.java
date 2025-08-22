@@ -1,6 +1,8 @@
 package com.fx.FxSmartApi.model;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 public class Candle {
     private Instant time; // kapanış anı (UTC)
@@ -25,4 +27,14 @@ public class Candle {
     public void setClose(double close) { this.close = close; }
     public void setVolume(double volume) { this.volume = volume; }
 
+    /** Barın kapanış zamanını epoch millis olarak döndürür. */
+    public static long closeMillis(Candle c) {
+        Instant t = c.getTime();               // Instant (UTC, close time)
+        return t.toEpochMilli();
+    }
+
+    /** Barın kapanış zamanını verilen TZ'de döndürür. */
+    public static ZonedDateTime closeZdt(Candle c, String tz) {
+        return c.getTime().atZone(ZoneId.of(tz));
+    }
 }

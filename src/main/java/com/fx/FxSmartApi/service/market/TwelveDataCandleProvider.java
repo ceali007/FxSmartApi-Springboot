@@ -49,6 +49,7 @@ public class TwelveDataCandleProvider implements CandleProvider {
             System.out.println("JSON Response: " + json);
 
 
+
             // (Genelde yeni->eski gelir) eski->yeni sırası için tersten ekle
             for (int i = values.size() - 1; i >= 0; i--) {
                 var v = values.get(i);

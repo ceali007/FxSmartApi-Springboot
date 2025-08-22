@@ -1,6 +1,5 @@
 package com.fx.FxSmartApi.service.advisor.engine;
 
-import com.fx.FxSmartApi.common.TimeframeUtils;
 import com.fx.FxSmartApi.model.Candle;
 import com.fx.FxSmartApi.model.Signal;
 import com.fx.FxSmartApi.model.StrategyConfig;
@@ -18,15 +17,20 @@ import java.util.function.Function;
 public class StrategyEngine {
 
     private final CandleProvider data;
-    // @Bean istemediğin için default config & registry’yi içeride kuruyoruz
+
+    // Default config – ileride dışarıdan parametrelenebilir
     private final StrategyConfig cfg = new StrategyConfig(1.5);
+
     private final StrategyTimeframeService strategyTimeframeService;
+
+    /**
+     * Strateji kayıtları: her yeni strateji burada register edilecek
+     */
     private final List<Function<SymbolTf, Strategy>> registry = List.of(
-            job -> new ICTStrategy(job.symbol(), job.timeframe())
-            // ileride: job -> new SMCStrategy(...), job -> new MomentumStrategy(...)
+            job -> new ICTStrategy()
+            // ileride: job -> new SMCStrategy(), job -> new MomentumStrategy()
     );
 
-    // >>> Tek constructor: Spring 4.3+ otomatik constructor injection yapar
     public StrategyEngine(CandleProvider data,
                           StrategyTimeframeService strategyTimeframeService) {
         this.data = data;
@@ -36,14 +40,15 @@ public class StrategyEngine {
     public List<EngineResult> runFor(SymbolTf symbolTf, Instant closeAlignUtc) {
         int need = strategyTimeframeService.getRequiredBars(symbolTf.timeframe());
 
-        List<Candle> candles = data.fetchCandles(symbolTf.symbol(), symbolTf.timeframe(), need, closeAlignUtc);
+        List<Candle> candles =
+                data.fetchCandles(symbolTf.symbol(), symbolTf.timeframe(), need, closeAlignUtc);
 
         if (candles == null || candles.size() < need) {
             var nowClose = (closeAlignUtc != null) ? closeAlignUtc : Instant.now();
             var flats = new ArrayList<EngineResult>();
             for (var f : registry) {
                 var s = f.apply(symbolTf);
-                flats.add(new EngineResult(symbolTf, s.name(), Signal.flat(), nowClose));
+                flats.add(new EngineResult(symbolTf, s.name(), Signal.flat(nowClose), nowClose));
             }
             return flats;
         }
@@ -53,8 +58,27 @@ public class StrategyEngine {
         var out = new ArrayList<EngineResult>();
         for (var f : registry) {
             var s = f.apply(symbolTf);
-            var sig = s.generate(candles, cfg);
-            out.add(new EngineResult(symbolTf, s.name(), sig, lastClose));
+
+            // ICTStrategy gibi stratejiler M1, M5, M15, H4, D1 candle setleri bekliyor
+            // Basit versiyonda elimizde sadece tek timeframe var.
+            // İleride multi-timeframe fetch eklenmeli.
+            List<Signal> sigs = s.evaluate(
+                    symbolTf.symbol(),
+                    candles, // M1
+                    candles, // M5
+                    candles, // M15
+                    candles, // H4
+                    candles, // D1
+                    cfg
+            );
+
+            if (sigs.isEmpty()) {
+                out.add(new EngineResult(symbolTf, s.name(), Signal.flat(lastClose), lastClose));
+            } else {
+                for (Signal sig : sigs) {
+                    out.add(new EngineResult(symbolTf, s.name(), sig, lastClose));
+                }
+            }
         }
         return out;
     }

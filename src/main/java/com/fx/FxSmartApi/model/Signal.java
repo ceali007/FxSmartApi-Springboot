@@ -2,34 +2,90 @@ package com.fx.FxSmartApi.model;
 
 import com.fx.FxSmartApi.model.enums.SignalSide;
 
-import java.util.Map;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Signal {
-    private SignalSide side = SignalSide.FLAT;
-    private Double stopLoss;
-    private Double takeProfit;
-    private double confidence = 0.0;
-    private String strategy = "NA";
-    private Map<String, Object> meta;
 
-    public Signal() {}
-    public Signal(SignalSide side, Double sl, Double tp, double conf, String strategy, Map<String,Object> meta) {
-        this.side = side; this.stopLoss = sl; this.takeProfit = tp; this.confidence = conf; this.strategy = strategy; this.meta = meta;
+    private String symbol;
+    private String timeframe;
+    private Instant time;              // UTC close-time
+    private SignalSide side;           // buy/sell/flat
+    private double entry;
+    private double sl;
+    private List<Double> tp = new ArrayList<>();
+
+    private double risk;
+    private double reward;
+    private double rr;                 // 2.0 => "1:2"
+
+    private List<String> reasons = new ArrayList<>();
+
+    // --- getters/setters (kısaltıldı) ---
+    public String getSymbol() { return symbol; }
+    public void setSymbol(String symbol) { this.symbol = symbol; }
+    public String getTimeframe() { return timeframe; }
+    public void setTimeframe(String timeframe) { this.timeframe = timeframe; }
+    public Instant getTime() { return time; }
+    public void setTime(Instant time) { this.time = time; }
+    public SignalSide getSide() { return side; }
+    public void setSide(SignalSide side) { this.side = side; }
+    public double getEntry() { return entry; }
+    public void setEntry(double entry) { this.entry = entry; }
+    public double getSl() { return sl; }
+    public void setSl(double sl) { this.sl = sl; }
+    public List<Double> getTp() { return tp; }
+    public void setTp(List<Double> tp) { this.tp = tp; }
+    public double getRisk() { return risk; }
+    public double getReward() { return reward; }
+    public double getRr() { return rr; }
+    public List<String> getReasons() { return reasons; }
+    public void addReason(String reason) { this.reasons.add(reason); }
+
+    public void setRR(double risk, double reward) {
+        this.risk = risk;
+        this.reward = reward;
+        this.rr = (risk > 0) ? (reward / risk) : 0.0;
     }
 
-    public static Signal flat() { return new Signal(); }
+    /** Strateji sinyal üretmediyse "flat" durumunu temsil eden yardımcı */
+    public static Signal flat(Instant t) {
+        Signal s = new Signal();
+        s.setTime(t);
+        s.setSide(SignalSide.FLAT);   // enum’da flat yoksa bu satırı kaldır, sadece reason bırak
+        s.addReason("flat");
+        return s;
+    }
 
-    public SignalSide getSide() { return side; }
-    public Double getStopLoss() { return stopLoss; }
-    public Double getTakeProfit() { return takeProfit; }
-    public double getConfidence() { return confidence; }
-    public String getStrategy() { return strategy; }
-    public Map<String, Object> getMeta() { return meta; }
+    @Override
+    public String toString() {
+        return "Signal{" +
+                "symbol='" + symbol + '\'' +
+                ", timeframe='" + timeframe + '\'' +
+                ", time=" + time +
+                ", side=" + side +
+                ", entry=" + entry +
+                ", sl=" + sl +
+                ", tp=" + tp +
+                ", rr=" + String.format("1:%.2f", rr) +
+                ", reasons=" + reasons +
+                '}';
+    }
 
-    public void setSide(SignalSide side) { this.side = side; }
-    public void setStopLoss(Double stopLoss) { this.stopLoss = stopLoss; }
-    public void setTakeProfit(Double takeProfit) { this.takeProfit = takeProfit; }
-    public void setConfidence(double confidence) { this.confidence = confidence; }
-    public void setStrategy(String strategy) { this.strategy = strategy; }
-    public void setMeta(Map<String, Object> meta) { this.meta = meta; }
+    public void setRisk(double risk) {
+        this.risk = risk;
+    }
+
+    public void setReward(double reward) {
+        this.reward = reward;
+    }
+
+    public void setRr(double rr) {
+        this.rr = rr;
+    }
+
+    public void setReasons(List<String> reasons) {
+        this.reasons = reasons;
+    }
 }

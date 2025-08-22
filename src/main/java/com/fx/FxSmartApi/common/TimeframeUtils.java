@@ -1,122 +1,92 @@
 package com.fx.FxSmartApi.common;
 
+import com.fx.FxSmartApi.model.Candle;
+
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TimeframeUtils {
 
-    private static final Set<String> SUPPORTED_INTERVALS = Set.of(
-            "1min", "5min", "15min", "30min", "45min",
-            "1h", "2h", "4h", "8h",
-            "1day", "1week", "1month"
-    );
+    /** Killzone kontrolü — Instant (UTC, close-time) ile */
+    public static boolean inNewYorkAM(Instant closeUtc,
+                                      String tz,
+                                      int sh, int sm,
+                                      int eh, int em) {
+        ZoneId zone = ZoneId.of(tz);
+        ZonedDateTime z = closeUtc.atZone(zone);
+        LocalTime t = z.toLocalTime();
+        LocalTime start = LocalTime.of(sh, sm);
+        LocalTime end   = LocalTime.of(eh, em);
+        return !t.isBefore(start) && t.isBefore(end);
+    }
 
-    /**
-     * Sembol normalizasyonu - EURUSD -> EUR/USD gibi
-     */
-    public static String normalizeSymbol(String raw) {
-        if (raw == null) return null;
-        String s = raw.trim().toUpperCase();
-        if (s.contains("/")) return s; // zaten doğru format
-        if (s.matches("^[A-Z]{6}$")) {
-            return s.substring(0, 3) + "/" + s.substring(3);
-        }
-        return s;
+    /** Geriye uyumluluk: epochMillis overload (Instant'a delege eder) */
+    public static boolean inNewYorkAM(long epochMillis,
+                                      String tz,
+                                      int sh, int sm,
+                                      int eh, int em) {
+        return inNewYorkAM(Instant.ofEpochMilli(epochMillis), tz, sh, sm, eh, em);
     }
 
     /**
-     * Timeframe'i desteklenen formata çevirir, değilse default 15min döner.
+     * Basit M1 → N dakika agregasyon (close-time mantığı).
+     * Çıktı Candle.time = agregat M*N dakikalık mumun KAPANIŞ zamanı (UTC).
      */
-    public static String normalizeInterval(String tf) {
-        if (tf == null) return "15min";
+    public static List<Candle> aggregate(List<Candle> m1, int minutes) {
+        if (m1 == null || m1.isEmpty() || minutes <= 1) return m1;
 
-        // Boşluk temizleme
-        tf = tf.trim().toLowerCase();
+        final long intervalMs = minutes * 60_000L;
+        List<Candle> out = new ArrayList<>();
 
-        // Kısaltmaları TwelveData formatına çevir
-        switch (tf) {
-            case "m1":  tf = "1min"; break;
-            case "m5":  tf = "5min"; break;
-            case "m15": tf = "15min"; break;
-            case "m30": tf = "30min"; break;
-            case "m45": tf = "45min"; break;
-            case "h1":  tf = "1h"; break;
-            case "h2":  tf = "2h"; break;
-            case "h4":  tf = "4h"; break;
-            case "h8":  tf = "8h"; break;
-            case "d1":  tf = "1day"; break;
-            case "w1":  tf = "1week"; break;
-            case "mn1": tf = "1month"; break;
+        long currentBucket = -1L;           // bucket index (close-time / interval)
+        double o = 0, h = 0, l = 0, c = 0;
+        double v = 0;
+
+        for (Candle x : m1) {
+            long tMs = x.getTime().toEpochMilli();    // M1 close-time (UTC)
+            long bucket = Math.floorDiv(tMs, intervalMs);
+
+            if (currentBucket == -1L) {
+                // ilk bar
+                currentBucket = bucket;
+                o = x.getOpen();
+                h = x.getHigh();
+                l = x.getLow();
+                c = x.getClose();
+                v = x.getVolume();
+            } else if (bucket == currentBucket) {
+                // aynı kovada topla
+                h = Math.max(h, x.getHigh());
+                l = Math.min(l, x.getLow());
+                c = x.getClose();
+                v += x.getVolume();
+            } else {
+                // önceki kovayı yaz (close-time = bucketIndex * interval)
+                long closeMs = currentBucket * intervalMs;
+                out.add(new Candle(Instant.ofEpochMilli(closeMs), o, h, l, c, v));
+
+                // yeni kova başlat
+                currentBucket = bucket;
+                o = x.getOpen();
+                h = x.getHigh();
+                l = x.getLow();
+                c = x.getClose();
+                v = x.getVolume();
+            }
         }
 
-        // Destekleniyorsa dön, değilse fallback
-        if (SUPPORTED_INTERVALS.contains(tf)) {
-            return tf;
+        // son kovayı yaz
+        if (currentBucket != -1L) {
+            long closeMs = currentBucket * intervalMs;
+            out.add(new Candle(Instant.ofEpochMilli(closeMs), o, h, l, c, v));
         }
-        return "15min";
+
+        return out;
+        // Not: close-time'ın tam dakikaya oturması için girdideki M1'lerin close-time'ı
+        // dakika sınırlarına denk gelmelidir (TwelveData M1 tipik olarak böyledir).
     }
-
-    /**
-     * Verilen zaman damgasını, seçilen interval'e göre son kapanışa hizalar.
-     */
-    public static Instant alignedToClosed(Instant time, String interval) {
-        interval = normalizeInterval(interval);
-        ZonedDateTime zdt = time.atZone(ZoneOffset.UTC);
-
-        switch (interval) {
-            case "1min":
-                return zdt.withSecond(0).withNano(0).toInstant();
-            case "5min":
-                return zdt.withMinute((zdt.getMinute() / 5) * 5).withSecond(0).withNano(0).toInstant();
-            case "15min":
-                return zdt.withMinute((zdt.getMinute() / 15) * 15).withSecond(0).withNano(0).toInstant();
-            case "30min":
-                return zdt.withMinute((zdt.getMinute() / 30) * 30).withSecond(0).withNano(0).toInstant();
-            case "45min":
-                return zdt.withMinute((zdt.getMinute() / 45) * 45).withSecond(0).withNano(0).toInstant();
-            case "1h":
-                return zdt.withMinute(0).withSecond(0).withNano(0).toInstant();
-            case "2h":
-                return zdt.withHour((zdt.getHour() / 2) * 2).withMinute(0).withSecond(0).withNano(0).toInstant();
-            case "4h":
-                return zdt.withHour((zdt.getHour() / 4) * 4).withMinute(0).withSecond(0).withNano(0).toInstant();
-            case "8h":
-                return zdt.withHour((zdt.getHour() / 8) * 8).withMinute(0).withSecond(0).withNano(0).toInstant();
-            case "1day":
-                return zdt.truncatedTo(ChronoUnit.DAYS).toInstant();
-            case "1week":
-                return zdt.with(ChronoField.DAY_OF_WEEK, 1)
-                        .truncatedTo(ChronoUnit.DAYS).toInstant();
-            case "1month":
-                return zdt.withDayOfMonth(1)
-                        .truncatedTo(ChronoUnit.DAYS).toInstant();
-            default:
-                return zdt.withMinute((zdt.getMinute() / 15) * 15).withSecond(0).withNano(0).toInstant();
-        }
-    }
-
-    public static int requiredBars(String interval) {
-        interval = normalizeInterval(interval);
-
-        switch (interval) {
-            case "1min":   return 150;
-            case "5min":   return 150;
-            case "15min":  return 200;
-            case "30min":  return 200;
-            case "45min":  return 200;
-            case "1h":     return 300;
-            case "2h":     return 300;
-            case "4h":     return 400;
-            case "8h":     return 400;
-            case "1day":   return 500;
-            case "1week":  return 600;
-            case "1month": return 800;
-            default:       return 150;
-        }
-    }
-
 }
