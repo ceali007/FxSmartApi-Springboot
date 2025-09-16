@@ -1,6 +1,6 @@
 package com.fx.FxSmartApi.service.advisor.engine;
 
-import com.fx.FxSmartApi.model.Signal;
+import com.fx.FxSmartApi.model.dto.Signal;
 
 import java.time.Instant;
 

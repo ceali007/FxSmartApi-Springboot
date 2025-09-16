@@ -1,8 +1,8 @@
 package com.fx.FxSmartApi.service.advisor.strategies;
 
-import com.fx.FxSmartApi.model.Candle;
-import com.fx.FxSmartApi.model.Signal;
-import com.fx.FxSmartApi.model.StrategyConfig;
+import com.fx.FxSmartApi.model.dto.Candle;
+import com.fx.FxSmartApi.model.dto.Signal;
+import com.fx.FxSmartApi.model.dto.StrategyConfig;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package com.fx.FxSmartApi.common;
 
-import com.fx.FxSmartApi.model.Candle;
+import com.fx.FxSmartApi.model.dto.Candle;
 
 import java.time.*;
 import java.util.List;

@@ -2,9 +2,9 @@ package com.fx.FxSmartApi.service.advisor.strategies;
 
 import com.fx.FxSmartApi.common.LevelsService;
 import com.fx.FxSmartApi.common.TimeframeUtils;
-import com.fx.FxSmartApi.model.Candle;
-import com.fx.FxSmartApi.model.Signal;
-import com.fx.FxSmartApi.model.StrategyConfig;
+import com.fx.FxSmartApi.model.dto.Candle;
+import com.fx.FxSmartApi.model.dto.Signal;
+import com.fx.FxSmartApi.model.dto.StrategyConfig;
 import com.fx.FxSmartApi.model.enums.SignalSide;
 
 import java.time.Instant;

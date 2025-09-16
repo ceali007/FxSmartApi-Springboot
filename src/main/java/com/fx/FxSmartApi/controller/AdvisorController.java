@@ -3,9 +3,12 @@ package com.fx.FxSmartApi.controller;
 
 
 import com.fx.FxSmartApi.common.CandleClock;
+import com.fx.FxSmartApi.model.api.AdvisorExecuteRequest;
+import com.fx.FxSmartApi.model.api.BaseResponse;
 import com.fx.FxSmartApi.service.advisor.engine.EngineResult;
 import com.fx.FxSmartApi.service.advisor.engine.StrategyEngine;
 import com.fx.FxSmartApi.service.advisor.engine.SymbolTf;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -38,5 +41,11 @@ public class AdvisorController {
         return symbols.stream()
                 .flatMap(sym -> engine.runFor(new SymbolTf(sym.toUpperCase(), timeframe), close).stream())
                 .toList();
+    }
+
+    @PostMapping("/execute")
+    public ResponseEntity<BaseResponse> execute(@RequestBody(required = false) AdvisorExecuteRequest req) {
+        engine.executeFromApi(req);           // hata yoksa başarılı say
+        return ResponseEntity.ok(BaseResponse.ok("advisor/execute accepted"));
     }
 }

@@ -1,4 +1,4 @@
-package com.fx.FxSmartApi.model;
+package com.fx.FxSmartApi.model.dto;
 
 import com.fx.FxSmartApi.model.enums.SignalSide;
 

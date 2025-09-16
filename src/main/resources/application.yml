@@ -2,5 +2,41 @@
 server:
   port: 8080
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+logging:
+  level:
+    org.springdoc: DEBUG
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://fxsmartapp:eJFVvucDVrqfg4Aw@fxsmartappcluster.hgj5wxt.mongodb.net/FxSmartDb?retryWrites=true&w=majority&appName=FxSmartAppCluster
+      auto-index-creation: true
+
 twelvedata:
-  apiKey: 1cf34041172848ae82f9ef6ba2b3911d
+  baseUrl: https://api.twelvedata.com
+  apikey: 1cf34041172848ae82f9ef6ba2b3911d
+
+fx:
+  tz: America/New_York
+  ingest:
+    fixedDelayMs: 60000
+    safetyRpm: 50
+    maxConcurrent: 1
+    outputSize: 1
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics   # prod için yeterli
+  endpoint:
+    health:
+      show-details: never             # prod: detayları gizle
+      probes:
+        enabled: true                 # k8s/ECS probeleri

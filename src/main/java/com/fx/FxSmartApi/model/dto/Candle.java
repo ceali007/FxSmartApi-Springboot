@@ -1,4 +1,4 @@
-package com.fx.FxSmartApi.model;
+package com.fx.FxSmartApi.model.dto;
 
 import java.time.Instant;
 import java.time.ZoneId;

@@ -1,6 +1,6 @@
 package com.fx.FxSmartApi.service.advisor.strategies;
 
-import com.fx.FxSmartApi.model.Candle;
+import com.fx.FxSmartApi.model.dto.Candle;
 import java.util.*;
 
 public class IctPrimitives {

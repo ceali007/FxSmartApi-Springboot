@@ -1,4 +1,4 @@
-package com.fx.FxSmartApi.model;
+package com.fx.FxSmartApi.model.dto;
 
 /**
  * ICT (ve diğer) stratejiler için çalışma parametreleri.
